@@ -35,3 +35,23 @@ public final class SourceFileFinder {
         }
     }
 }
+
+/* mutate4java-manifest
+version=1
+moduleHash=daf9af4970f6b192cf23a20ff190d59736e5bde69e269da73699aaaef1dfa00e
+scope.0.id=Y2xhc3M6U291cmNlRmlsZUZpbmRlciNTb3VyY2VGaWxlRmluZGVyOjIw
+scope.0.kind=class
+scope.0.startLine=20
+scope.0.endLine=37
+scope.0.semanticHash=fda89f55b2dc5f0ce1eefe25f1abd5818c219ad644ae66cab9d094dcaf6f1e6e
+scope.1.id=bWV0aG9kOlNvdXJjZUZpbGVGaW5kZXIjY3RvcigwKToyMg
+scope.1.kind=method
+scope.1.startLine=22
+scope.1.endLine=23
+scope.1.semanticHash=952989561249035658f6719d569bc70bd2b9d10da263124c47f965e77064bb82
+scope.2.id=bWV0aG9kOlNvdXJjZUZpbGVGaW5kZXIjZmluZEFsbEphdmFGaWxlc1VuZGVyU3JjKDEpOjI1
+scope.2.kind=method
+scope.2.startLine=25
+scope.2.endLine=36
+scope.2.semanticHash=31299cf8fb60ba6376aaec90619d4820aaa62669530f81e5fbb2855afa36c5bc
+*/

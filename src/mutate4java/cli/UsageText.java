@@ -43,3 +43,23 @@ final class UsageText {
                 """;
     }
 }
+
+/* mutate4java-manifest
+version=1
+moduleHash=3ab6a696068a5b3b9aef41c04dc62aa8674cd973c9f19d4df283791d7641fe38
+scope.0.id=Y2xhc3M6VXNhZ2VUZXh0I1VzYWdlVGV4dDoyMw
+scope.0.kind=class
+scope.0.startLine=23
+scope.0.endLine=45
+scope.0.semanticHash=3a4bc410b3ed5ede6ca675cdf90fbeb1945a9ed052ed635737314e2aa63509d3
+scope.1.id=bWV0aG9kOlVzYWdlVGV4dCNjdG9yKDApOjI1
+scope.1.kind=method
+scope.1.startLine=25
+scope.1.endLine=26
+scope.1.semanticHash=2c5260a62764098ff916549096f15e840ae635710b3d87f6432fe9b9f3353d2b
+scope.2.id=bWV0aG9kOlVzYWdlVGV4dCN0ZXh0KDApOjI4
+scope.2.kind=method
+scope.2.startLine=28
+scope.2.endLine=44
+scope.2.semanticHash=132a01a22df2c3d44b998a823d37872dc5027e45d7b8675001708a4ab75c6db5
+*/

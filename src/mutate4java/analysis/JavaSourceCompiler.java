@@ -50,3 +50,23 @@ final class JavaSourceCompiler {
         }
     }
 }
+
+/* mutate4java-manifest
+version=1
+moduleHash=82f762e0acce8ae81a9c877609e03f1bac3ad289646f639d4e093c172c134cc7
+scope.0.id=Y2xhc3M6SmF2YVNvdXJjZUNvbXBpbGVyI0phdmFTb3VyY2VDb21waWxlcjozMQ
+scope.0.kind=class
+scope.0.startLine=31
+scope.0.endLine=52
+scope.0.semanticHash=fe6623ba6417dc69ea43ce8eb841ccf892355cd74f1885bb0216310d18f998ed
+scope.1.id=bWV0aG9kOkphdmFTb3VyY2VDb21waWxlciNjb21waWxlKDEpOjMz
+scope.1.kind=method
+scope.1.startLine=33
+scope.1.endLine=51
+scope.1.semanticHash=598111f1ff2bac39f06dd8417ebee2a89fe579f0b653761b9c439d93b95d9309
+scope.2.id=bWV0aG9kOkphdmFTb3VyY2VDb21waWxlciNjdG9yKDApOjMx
+scope.2.kind=method
+scope.2.startLine=1
+scope.2.endLine=52
+scope.2.semanticHash=d32b1ae80b5f3a37baaa8fe5645f7d026edeef96fca0881bd7dbb35d7fac5748
+*/

@@ -52,3 +52,23 @@ public final class ReportFormatter {
         return out.toString();
     }
 }
+
+/* mutate4java-manifest
+version=1
+moduleHash=de0dfc5187bd3061e96f566ebf15c8a483cf9b20357eb9fbb2175b11d293be9e
+scope.0.id=Y2xhc3M6UmVwb3J0Rm9ybWF0dGVyI1JlcG9ydEZvcm1hdHRlcjoxOA
+scope.0.kind=class
+scope.0.startLine=18
+scope.0.endLine=54
+scope.0.semanticHash=cc2e05449b0e05227bcfe6953b54a7873fc9e76ea9260d48a04972e37da0dad3
+scope.1.id=bWV0aG9kOlJlcG9ydEZvcm1hdHRlciNjdG9yKDApOjE4
+scope.1.kind=method
+scope.1.startLine=1
+scope.1.endLine=54
+scope.1.semanticHash=7e4013a7a117020616467b6ee706c84bac65f6d9305278c500ff0eaf0375f036
+scope.2.id=bWV0aG9kOlJlcG9ydEZvcm1hdHRlciNmb3JtYXQoNSk6MjA
+scope.2.kind=method
+scope.2.startLine=20
+scope.2.endLine=53
+scope.2.semanticHash=54a0dea841634d8a8f03036e0720c5115f5a31fbb1b5a608967fbf134e0f6eaa
+*/

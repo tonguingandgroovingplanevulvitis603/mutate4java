@@ -92,7 +92,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>mutate4java.Main</mainClass>
+              <mainClass>mutate4java.cli.Main</mainClass>
             </manifest>
           </archive>
         </configuration>
