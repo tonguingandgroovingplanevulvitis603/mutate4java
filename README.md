@@ -28,6 +28,9 @@ Mutation runs can be isolated across multiple worker copies of the module so par
 # Mutate one Java source file
 java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java
 
+# Print a mutation-site scan without running tests
+java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --scan
+
 # Restrict mutation to specific lines
 java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --lines 12,18
 
@@ -61,6 +64,9 @@ java -jar target/mutate4java-0.1.0-SNAPSHOT.jar --help
 - `--lines 12,18`
   Restricts mutation to the listed source lines in the requested file.
 
+- `--scan`
+  Bypasses baseline, coverage, and mutant execution. It prints every discovered mutation site and marks changed scopes from the embedded manifest with `*`.
+
 - `--since-last-run`
   Restricts mutation to covered sites in declaration scopes that changed since the embedded manifest.
 
@@ -91,6 +97,7 @@ java -jar target/mutate4java-0.1.0-SNAPSHOT.jar --help
 - Directory-wide mutation is not supported.
 - Test sources are executed, but they are not mutation targets.
 - `--lines` may not be combined with `--since-last-run` or `--mutate-all`.
+- `--scan` may not be combined with `--since-last-run` or `--mutate-all`.
 - `--since-last-run` may not be combined with `--mutate-all`.
 
 ## Coverage Filtering
@@ -143,6 +150,26 @@ With no explicit selection flags:
 - if a manifest exists and the module hash changed, it mutates only sites inside changed scopes
 
 This makes repeated mutation runs cheaper on large files without relying on git.
+
+## Scan Mode
+
+`--scan` prints a lightweight differential inventory for a single file. It does not:
+
+- run the baseline tests
+- generate coverage
+- run any mutants
+- rewrite the embedded manifest
+
+Instead it prints the discovered mutation sites in source order and, when a manifest exists, prefixes sites in changed scopes with `*`.
+
+Typical scan output looks like this:
+
+```text
+Scan: 2 mutation sites in src/main/java/demo/Flag.java
+* src/main/java/demo/Flag.java:5 replace true with false
+  src/main/java/demo/Flag.java:9 replace == with !=
+* indicates a scope that differs from the embedded manifest.
+```
 
 ## JUnit Tags
 

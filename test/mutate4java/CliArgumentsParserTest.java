@@ -25,6 +25,7 @@ class CliArgumentsParserTest {
         assertEquals(CliMode.EXPLICIT_FILES, parsed.mode());
         assertEquals(List.of("src/main/java/demo/App.java"), parsed.fileArgs());
         assertEquals(Set.of(), parsed.lines());
+        assertEquals(false, parsed.scan());
         assertEquals(false, parsed.sinceLastRun());
         assertEquals(false, parsed.mutateAll());
         assertEquals(10, parsed.timeoutFactor());
@@ -61,6 +62,15 @@ class CliArgumentsParserTest {
         });
 
         assertEquals(true, parsed.verbose());
+    }
+
+    @Test
+    void parsesScanFlag() {
+        CliArguments parsed = CliArgumentsParser.parse(new String[]{
+                "src/main/java/demo/App.java", "--scan"
+        });
+
+        assertEquals(true, parsed.scan());
     }
 
     @Test
@@ -164,6 +174,22 @@ class CliArgumentsParserTest {
                 () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--since-last-run", "--mutate-all"}));
 
         assertEquals("--since-last-run may not be combined with --mutate-all", error.getMessage());
+    }
+
+    @Test
+    void rejectsScanCombinedWithSinceLastRun() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--scan", "--since-last-run"}));
+
+        assertEquals("--scan may not be combined with --since-last-run", error.getMessage());
+    }
+
+    @Test
+    void rejectsScanCombinedWithMutateAll() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--scan", "--mutate-all"}));
+
+        assertEquals("--scan may not be combined with --mutate-all", error.getMessage());
     }
 
     @Test

@@ -20,7 +20,7 @@ final class CliArgumentsParser {
             i = parseArgument(args, i, state);
         }
         if (state.help) {
-            return new CliArguments(CliMode.HELP, List.of(), Set.of(), false, false,
+            return new CliArguments(CliMode.HELP, List.of(), Set.of(), false, false, false,
                     state.timeoutFactor, state.mutationWarning, state.maxWorkers, null, state.verbose);
         }
         validateSelectionFlags(state);
@@ -29,6 +29,7 @@ final class CliArgumentsParser {
                 CliMode.EXPLICIT_FILES,
                 List.copyOf(state.values),
                 state.lines,
+                state.scan,
                 state.sinceLastRun,
                 state.mutateAll,
                 state.timeoutFactor,
@@ -44,6 +45,7 @@ final class CliArgumentsParser {
         return switch (arg) {
             case "--help" -> state.help(index);
             case "--verbose" -> state.verbose(index);
+            case "--scan" -> state.scan(index);
             case "--lines" -> parseFlagValue(args, index, "--lines", value -> state.lines(parseLines(value)));
             case "--since-last-run" -> state.sinceLastRun(index);
             case "--mutate-all" -> state.mutateAll(index);
@@ -59,6 +61,12 @@ final class CliArgumentsParser {
     }
 
     private static void validateSelectionFlags(ParseState state) {
+        if (state.scan && state.sinceLastRun) {
+            throw new IllegalArgumentException("--scan may not be combined with --since-last-run");
+        }
+        if (state.scan && state.mutateAll) {
+            throw new IllegalArgumentException("--scan may not be combined with --mutate-all");
+        }
         if (!state.lines.isEmpty() && state.sinceLastRun) {
             throw new IllegalArgumentException("--lines may not be combined with --since-last-run");
         }
@@ -133,6 +141,7 @@ final class CliArgumentsParser {
         private boolean help;
         private boolean verbose;
         private Set<Integer> lines = Set.of();
+        private boolean scan;
         private boolean sinceLastRun;
         private boolean mutateAll;
         private int timeoutFactor = DEFAULT_TIMEOUT_FACTOR;
@@ -153,6 +162,11 @@ final class CliArgumentsParser {
 
         private int sinceLastRun(int index) {
             sinceLastRun = true;
+            return index;
+        }
+
+        private int scan(int index) {
+            scan = true;
             return index;
         }
 

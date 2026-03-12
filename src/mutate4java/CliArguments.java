@@ -6,6 +6,7 @@ import java.util.Set;
 record CliArguments(CliMode mode,
                     List<String> fileArgs,
                     Set<Integer> lines,
+                    boolean scan,
                     boolean sinceLastRun,
                     boolean mutateAll,
                     int timeoutFactor,

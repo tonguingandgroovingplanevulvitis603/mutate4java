@@ -65,6 +65,59 @@ class CliApplicationTest {
     }
 
     @Test
+    void scansMutationSitesWithoutRunningCoverageOrMutants() throws Exception {
+        Path file = writeSourceFile();
+        StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of()));
+        StubExecutor executor = new StubExecutor();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        int exit = application(out, new ByteArrayOutputStream(), executor, coverageRunner)
+                .execute(new String[]{relative(file), "--scan"});
+
+        assertEquals(0, exit);
+        assertTrue(out.toString().contains("Scan: 2 mutation sites in src/main/java/demo/Sample.java"));
+        assertTrue(out.toString().contains("src/main/java/demo/Sample.java:5 replace true with false"));
+        assertTrue(out.toString().contains("src/main/java/demo/Sample.java:9 replace == with !="));
+        assertEquals(0, executor.invocations.get());
+        assertEquals(0, coverageRunner.invocations.get());
+        assertEquals(originalSource(), strippedSource(file));
+    }
+
+    @Test
+    void marksChangedScopesDuringScanWhenManifestDiffers() throws Exception {
+        Path file = writeSourceFile();
+        SourceAnalysis manifestBaseline = new MutationCatalog().analyze(file);
+        writeMatchingManifest(file);
+        String changedSource = """
+                package demo;
+
+                class Sample {
+                    boolean truthy() {
+                        return false;
+                    }
+
+                    boolean same(int left, int right) {
+                        return left == right;
+                    }
+                }
+                """;
+        manifestSupport.write(file,
+                changedSource,
+                new DifferentialManifest(1, manifestBaseline.moduleHash(), manifestBaseline.scopes()));
+        StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of()));
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        int exit = application(out, new ByteArrayOutputStream(), new StubExecutor(), coverageRunner)
+                .execute(new String[]{relative(file), "--scan"});
+
+        assertEquals(0, exit);
+        assertTrue(out.toString().contains("* src/main/java/demo/Sample.java:5 replace false with true"));
+        assertTrue(out.toString().contains("  src/main/java/demo/Sample.java:9 replace == with !="));
+        assertTrue(out.toString().contains("* indicates a scope that differs from the embedded manifest."));
+        assertEquals(0, coverageRunner.invocations.get());
+    }
+
+    @Test
     void printsUsageForInvalidArgumentsAndExitsOne() throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
@@ -486,6 +539,7 @@ class CliApplicationTest {
 
     private static final class StubCoverageRunner extends CoverageRunner {
         private final CoverageRun run;
+        private final AtomicInteger invocations = new AtomicInteger();
 
         private StubCoverageRunner(CoverageReport report) {
             super(new ProcessCommandExecutor());
@@ -499,6 +553,7 @@ class CliApplicationTest {
 
         @Override
         CoverageRun generateCoverage(Path projectRoot) {
+            invocations.incrementAndGet();
             return run;
         }
     }

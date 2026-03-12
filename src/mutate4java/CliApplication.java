@@ -80,6 +80,13 @@ final class CliApplication {
         Path sourceFile = files.get(0);
         Path moduleRoot = moduleRootFor(files);
         ProgressReporter progressReporter = parsed.verbose() ? verboseProgressReporter : new NoOpProgressReporter();
+        SourceAnalysis analysis = analyze(sourceFile);
+        List<MutationSite> scannedSites = filterByLines(analysis.sites(), parsed.lines());
+
+        if (parsed.scan()) {
+            out.print(formatScanReport(sourceFile, scannedSites, changedScopeIds(sourceFile, analysis)));
+            return 0;
+        }
 
         progressReporter.baselineStarting(moduleRoot);
         CoverageRun coverageRun = parsed.testCommand() == null
@@ -97,7 +104,6 @@ final class CliApplication {
         }
 
         CoverageReport coverage = coverageRun.report();
-        SourceAnalysis analysis = analyze(sourceFile);
         DifferentialSelection differentialSelection = selectSites(sourceFile, parsed, analysis);
         List<MutationSite> discovered = filterByLines(differentialSelection.selected(), parsed.lines());
         CoverageSelection coverageSelection = filterCoveredSites(moduleRoot, discovered, coverage);
@@ -175,6 +181,22 @@ final class CliApplication {
         return catalog.analyze(sourceFile);
     }
 
+    private String formatScanReport(Path sourceFile, List<MutationSite> sites, Set<String> changedScopes) {
+        StringBuilder report = new StringBuilder();
+        report.append("Scan: ").append(sites.size()).append(" mutation sites in ")
+                .append(workspaceRoot.relativize(sourceFile).toString().replace('\\', '/')).append('\n');
+        for (MutationSite site : sites) {
+            report.append(changedScopes.contains(site.scopeId()) ? "* " : "  ");
+            report.append(workspaceRoot.relativize(site.file()).toString().replace('\\', '/'))
+                    .append(':').append(site.lineNumber()).append(' ')
+                    .append(site.description()).append('\n');
+        }
+        if (!changedScopes.isEmpty()) {
+            report.append("* indicates a scope that differs from the embedded manifest.\n");
+        }
+        return report.toString();
+    }
+
     private DifferentialSelection selectSites(Path sourceFile, CliArguments parsed, SourceAnalysis analysis) throws Exception {
         if (parsed.mutateAll()) {
             return new DifferentialSelection(analysis.sites(), false);
@@ -182,13 +204,27 @@ final class CliApplication {
         if (!parsed.sinceLastRun() && !parsed.lines().isEmpty()) {
             return new DifferentialSelection(analysis.sites(), false);
         }
+        Set<String> changedScopes = changedScopeIds(sourceFile, analysis);
+        if (changedScopes.isEmpty() && manifestSupport.read(sourceFile).isEmpty()) {
+            return new DifferentialSelection(analysis.sites(), false);
+        }
+        if (changedScopes.isEmpty()) {
+            return new DifferentialSelection(List.of(), true);
+        }
+        List<MutationSite> selected = analysis.sites().stream()
+                .filter(site -> changedScopes.contains(site.scopeId()))
+                .toList();
+        return new DifferentialSelection(selected, false);
+    }
+
+    private Set<String> changedScopeIds(Path sourceFile, SourceAnalysis analysis) throws Exception {
         var manifest = manifestSupport.read(sourceFile);
         if (manifest.isEmpty()) {
-            return new DifferentialSelection(analysis.sites(), false);
+            return Set.of();
         }
         DifferentialManifest previous = manifest.get();
         if (previous.moduleHash().equals(analysis.moduleHash())) {
-            return new DifferentialSelection(List.of(), true);
+            return Set.of();
         }
         java.util.Map<String, String> previousHashes = new java.util.LinkedHashMap<>();
         for (MutationScope scope : previous.scopes()) {
@@ -200,10 +236,7 @@ final class CliApplication {
                 changedScopes.add(scope.id());
             }
         }
-        List<MutationSite> selected = analysis.sites().stream()
-                .filter(site -> changedScopes.contains(site.scopeId()))
-                .toList();
-        return new DifferentialSelection(selected, false);
+        return Set.copyOf(changedScopes);
     }
 
     private List<MutationSite> filterByLines(List<MutationSite> sites, Set<Integer> lines) {

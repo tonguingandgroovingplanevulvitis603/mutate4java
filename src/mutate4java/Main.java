@@ -30,6 +30,7 @@ public final class Main {
         return """
                 Usage:
                   mutate4java <file.java>                      Mutate one Java source file
+                  mutate4java <file.java> --scan              Print mutation-site scan without running tests
                   mutate4java <file.java> --lines 12,18       Restrict mutations to specific source lines
                   mutate4java <file.java> --since-last-run    Mutate only scopes changed since embedded manifest
                   mutate4java <file.java> --mutate-all        Ignore embedded manifest and mutate all covered sites
