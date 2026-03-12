@@ -18,6 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CliApplicationTest {
 
+    private final ManifestSupport manifestSupport = new ManifestSupport();
+
     @TempDir
     Path tempDir;
 
@@ -25,7 +27,7 @@ class CliApplicationTest {
     void reportsMutationProgress() throws Exception {
         Path file = writeSourceFile();
         StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
-                new CoverageSite("main/java/demo/Sample.java", 5)
+                new CoverageSite("demo/Sample.java", 5)
         )));
         StubExecutor executor = new StubExecutor(
                 new TestRun(1, "killed", 5, false)
@@ -91,7 +93,7 @@ class CliApplicationTest {
 
         assertEquals(2, exit);
         assertTrue(err.toString().contains("Baseline tests failed."));
-        assertEquals(originalSource(), Files.readString(file));
+        assertEquals(originalSource(), strippedSource(file));
         assertEquals(0, executor.invocations.get());
     }
 
@@ -99,8 +101,8 @@ class CliApplicationTest {
     void returnsNonZeroWhenAnyMutationSurvives() throws Exception {
         Path file = writeSourceFile();
         StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
-                new CoverageSite("main/java/demo/Sample.java", 5),
-                new CoverageSite("main/java/demo/Sample.java", 9)
+                new CoverageSite("demo/Sample.java", 5),
+                new CoverageSite("demo/Sample.java", 9)
         )));
         StubExecutor executor = new StubExecutor(
                 new TestRun(1, "killed", 5, false),
@@ -114,15 +116,15 @@ class CliApplicationTest {
         assertEquals(3, exit);
         assertTrue(out.toString().contains("KILLED"));
         assertTrue(out.toString().contains("SURVIVED"));
-        assertEquals(originalSource(), Files.readString(file));
+        assertEquals(originalSource(), strippedSource(file));
     }
 
     @Test
     void returnsZeroWhenAllMutationsAreKilled() throws Exception {
         Path file = writeSourceFile();
         StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
-                new CoverageSite("main/java/demo/Sample.java", 5),
-                new CoverageSite("main/java/demo/Sample.java", 9)
+                new CoverageSite("demo/Sample.java", 5),
+                new CoverageSite("demo/Sample.java", 9)
         )));
         StubExecutor executor = new StubExecutor(
                 new TestRun(1, "killed", 5, false),
@@ -133,7 +135,7 @@ class CliApplicationTest {
                 .execute(new String[]{relative(file)});
 
         assertEquals(0, exit);
-        assertEquals(originalSource(), Files.readString(file));
+        assertEquals(originalSource(), strippedSource(file));
     }
 
     @Test
@@ -155,7 +157,7 @@ class CliApplicationTest {
     void filtersMutationsByRequestedLines() throws Exception {
         Path file = writeSourceFile();
         StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
-                new CoverageSite("main/java/demo/Sample.java", 5)
+                new CoverageSite("demo/Sample.java", 5)
         )));
         StubExecutor executor = new StubExecutor(
                 new TestRun(1, "killed", 5, false)
@@ -175,7 +177,7 @@ class CliApplicationTest {
     void countsTimedOutMutantsAsKilled() throws Exception {
         Path file = writeUnarySourceFile();
         StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
-                new CoverageSite("main/java/demo/Guard.java", 5)
+                new CoverageSite("demo/Guard.java", 5)
         )));
         StubExecutor executor = new StubExecutor(
                 new TestRun(124, "timed out mutant", 1000, true)
@@ -187,14 +189,14 @@ class CliApplicationTest {
 
         assertEquals(0, exit);
         assertTrue(out.toString().contains("timed out"));
-        assertEquals(unarySource(), Files.readString(file));
+        assertEquals(unarySource(), strippedSource(file));
     }
 
     @Test
     void reportsUncoveredSitesAndSkipsThem() throws Exception {
         Path file = writeSourceFile();
         StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
-                new CoverageSite("main/java/demo/Sample.java", 5)
+                new CoverageSite("demo/Sample.java", 5)
         )));
         StubExecutor executor = new StubExecutor(
                 new TestRun(1, "killed", 5, false)
@@ -214,8 +216,8 @@ class CliApplicationTest {
     void acceptsMaxWorkersDuringMutationRun() throws Exception {
         Path file = writeSourceFile();
         StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
-                new CoverageSite("main/java/demo/Sample.java", 5),
-                new CoverageSite("main/java/demo/Sample.java", 9)
+                new CoverageSite("demo/Sample.java", 5),
+                new CoverageSite("demo/Sample.java", 9)
         )));
         StubExecutor executor = new StubExecutor(
                 new TestRun(1, "killed", 5, false),
@@ -229,7 +231,91 @@ class CliApplicationTest {
         assertEquals(0, exit);
         assertTrue(out.toString().contains("Summary: 2 killed, 0 survived, 2 total."));
         assertEquals(2, executor.invocations.get());
-        assertEquals(originalSource(), Files.readString(file));
+        assertEquals(originalSource(), strippedSource(file));
+    }
+
+    @Test
+    void printsWarningWhenSelectedMutationCountExceedsThreshold() throws Exception {
+        Path file = writeSourceFile();
+        StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
+                new CoverageSite("demo/Sample.java", 5),
+                new CoverageSite("demo/Sample.java", 9)
+        )));
+        StubExecutor executor = new StubExecutor(
+                new TestRun(1, "killed", 5, false),
+                new TestRun(1, "killed", 5, false)
+        );
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        int exit = application(out, new ByteArrayOutputStream(), executor, coverageRunner)
+                .execute(new String[]{relative(file), "--mutation-warning", "1"});
+
+        assertEquals(0, exit);
+        assertTrue(out.toString().contains("WARNING: Found 2 mutations. Consider splitting this module."));
+    }
+
+    @Test
+    void skipsMutationsWhenManifestMatchesCurrentModuleHash() throws Exception {
+        Path file = writeSourceFile();
+        StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
+                new CoverageSite("demo/Sample.java", 5),
+                new CoverageSite("demo/Sample.java", 9)
+        )));
+        StubExecutor executor = new StubExecutor();
+        writeMatchingManifest(file);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        int exit = application(out, new ByteArrayOutputStream(), executor, coverageRunner)
+                .execute(new String[]{relative(file), "--since-last-run"});
+
+        assertEquals(0, exit);
+        assertTrue(out.toString().contains("No mutations need testing."));
+        assertEquals(0, executor.invocations.get());
+    }
+
+    @Test
+    void mutateAllIgnoresMatchingManifest() throws Exception {
+        Path file = writeSourceFile();
+        StubCoverageRunner coverageRunner = new StubCoverageRunner(new CoverageReport(Set.of(
+                new CoverageSite("demo/Sample.java", 5),
+                new CoverageSite("demo/Sample.java", 9)
+        )));
+        StubExecutor executor = new StubExecutor(
+                new TestRun(1, "killed", 5, false),
+                new TestRun(1, "killed", 5, false)
+        );
+        writeMatchingManifest(file);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        int exit = application(out, new ByteArrayOutputStream(), executor, coverageRunner)
+                .execute(new String[]{relative(file), "--mutate-all"});
+
+        assertEquals(0, exit);
+        assertTrue(!out.toString().contains("No mutations need testing."));
+        assertEquals(2, executor.invocations.get());
+    }
+
+    @Test
+    void usesCustomTestCommandAndTreatsSitesAsCovered() throws Exception {
+        Path file = writeSourceFile();
+        StubExecutor executor = new StubExecutor(
+                new TestRun(0, "baseline ok", 10, false),
+                new TestRun(1, "killed", 5, false),
+                new TestRun(1, "killed", 6, false)
+        );
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        int exit = application(out, new ByteArrayOutputStream(), executor, new StubCoverageRunner(new CoverageReport(Set.of())))
+                .execute(new String[]{relative(file), "--test-command", "mvn test -DexcludeTags=no-mutate"});
+
+        assertEquals(0, exit);
+        assertTrue(out.toString().contains("Summary: 2 killed, 0 survived, 2 total."));
+        assertEquals(3, executor.invocations.get());
+        assertEquals(List.of(
+                "mvn test -DexcludeTags=no-mutate",
+                "mvn test -DexcludeTags=no-mutate",
+                "mvn test -DexcludeTags=no-mutate"
+        ), List.copyOf(executor.commands));
     }
 
     @Test
@@ -271,6 +357,17 @@ class CliApplicationTest {
         assertEquals("demo/Sample.java", suffix);
     }
 
+    @Test
+    void stripsStandardMavenJavaSourcePrefixFromCoverageLookupPath() throws Exception {
+        Path file = writeSourceFile();
+
+        String suffix = application(new ByteArrayOutputStream(), new ByteArrayOutputStream(),
+                new StubExecutor(), new StubCoverageRunner(new CoverageReport(Set.of())))
+                .sourceSuffix(tempDir, file);
+
+        assertEquals("demo/Sample.java", suffix);
+    }
+
     private Path writeSourceFile() throws Exception {
         Path file = tempDir.resolve("src/main/java/demo/Sample.java");
         Files.createDirectories(file.getParent());
@@ -287,6 +384,17 @@ class CliApplicationTest {
 
     private String relative(Path file) {
         return tempDir.relativize(file).toString();
+    }
+
+    private String strippedSource(Path file) throws Exception {
+        return manifestSupport.stripManifest(Files.readString(file));
+    }
+
+    private void writeMatchingManifest(Path file) throws Exception {
+        SourceAnalysis analysis = new MutationCatalog().analyze(file);
+        manifestSupport.write(file,
+                analysis.sourceWithoutManifest(),
+                new DifferentialManifest(1, analysis.moduleHash(), analysis.scopes()));
     }
 
     private String originalSource() {
@@ -333,13 +441,30 @@ class CliApplicationTest {
     }
 
     private static final class StubExecutor implements TestCommandExecutor {
-        private final Queue<TestRun> runs = new ConcurrentLinkedQueue<>();
-        private final Queue<Long> timeouts = new ConcurrentLinkedQueue<>();
-        private final AtomicInteger invocations = new AtomicInteger();
+        private final Queue<TestRun> runs;
+        private final Queue<Long> timeouts;
+        private final Queue<String> commands;
+        private final AtomicInteger invocations;
+        private final String command;
 
         private StubExecutor(TestRun... values) {
+            this(new ConcurrentLinkedQueue<>(), new ConcurrentLinkedQueue<>(), new ConcurrentLinkedQueue<>(),
+                    new AtomicInteger(), null, values);
+        }
+
+        private StubExecutor(Queue<TestRun> runs,
+                             Queue<Long> timeouts,
+                             Queue<String> commands,
+                             AtomicInteger invocations,
+                             String command,
+                             TestRun... values) {
+            this.runs = runs;
+            this.timeouts = timeouts;
+            this.commands = commands;
+            this.invocations = invocations;
+            this.command = command;
             for (TestRun value : values) {
-                runs.add(value);
+                this.runs.add(value);
             }
         }
 
@@ -347,7 +472,15 @@ class CliApplicationTest {
         public TestRun runTests(Path projectRoot, long timeoutMillis) {
             invocations.incrementAndGet();
             timeouts.add(timeoutMillis);
+            if (command != null) {
+                commands.add(command);
+            }
             return runs.remove();
+        }
+
+        @Override
+        public TestCommandExecutor withCommand(String command) {
+            return new StubExecutor(runs, timeouts, commands, invocations, command);
         }
     }
 

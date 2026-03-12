@@ -7,18 +7,30 @@ import java.util.concurrent.TimeUnit;
 
 final class ProcessTestCommandExecutor implements TestCommandExecutor {
 
+    private static final List<String> DEFAULT_COMMAND = List.of("mvn", "test", "-DexcludeTags=no-mutate");
+
     private final ProcessLauncher launcher;
+    private final String commandText;
 
     ProcessTestCommandExecutor() {
-        this(List.of("mvn", "test"));
+        this(DEFAULT_COMMAND);
     }
 
     ProcessTestCommandExecutor(List<String> command) {
-        this(projectRoot -> startProcess(projectRoot, command));
+        this(projectRoot -> startProcess(projectRoot, command), null);
+    }
+
+    ProcessTestCommandExecutor(String commandText) {
+        this(projectRoot -> startShellProcess(projectRoot, commandText), commandText);
     }
 
     ProcessTestCommandExecutor(ProcessLauncher launcher) {
+        this(launcher, null);
+    }
+
+    private ProcessTestCommandExecutor(ProcessLauncher launcher, String commandText) {
         this.launcher = launcher;
+        this.commandText = commandText;
     }
 
     @Override
@@ -34,6 +46,13 @@ final class ProcessTestCommandExecutor implements TestCommandExecutor {
 
     private static Process startProcess(Path projectRoot, List<String> command) throws IOException {
         return new ProcessBuilder(command)
+                .directory(projectRoot.toFile())
+                .redirectErrorStream(true)
+                .start();
+    }
+
+    private static Process startShellProcess(Path projectRoot, String commandText) throws IOException {
+        return new ProcessBuilder("/bin/sh", "-lc", commandText)
                 .directory(projectRoot.toFile())
                 .redirectErrorStream(true)
                 .start();
@@ -66,5 +85,10 @@ final class ProcessTestCommandExecutor implements TestCommandExecutor {
 
     interface ProcessLauncher {
         Process start(Path projectRoot) throws IOException;
+    }
+
+    @Override
+    public TestCommandExecutor withCommand(String command) {
+        return new ProcessTestCommandExecutor(command);
     }
 }

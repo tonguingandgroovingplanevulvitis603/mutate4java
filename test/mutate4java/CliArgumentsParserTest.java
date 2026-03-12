@@ -25,8 +25,12 @@ class CliArgumentsParserTest {
         assertEquals(CliMode.EXPLICIT_FILES, parsed.mode());
         assertEquals(List.of("src/main/java/demo/App.java"), parsed.fileArgs());
         assertEquals(Set.of(), parsed.lines());
+        assertEquals(false, parsed.sinceLastRun());
+        assertEquals(false, parsed.mutateAll());
         assertEquals(10, parsed.timeoutFactor());
+        assertEquals(50, parsed.mutationWarning());
         assertEquals(Math.max(1, Runtime.getRuntime().availableProcessors() / 2), parsed.maxWorkers());
+        assertEquals(null, parsed.testCommand());
         assertEquals(false, parsed.verbose());
     }
 
@@ -57,6 +61,30 @@ class CliArgumentsParserTest {
         });
 
         assertEquals(true, parsed.verbose());
+    }
+
+    @Test
+    void parsesDifferentialFlagsAndTestCommand() {
+        CliArguments parsed = CliArgumentsParser.parse(new String[]{
+                "src/main/java/demo/App.java",
+                "--since-last-run",
+                "--mutation-warning", "75",
+                "--test-command", "mvn test -DexcludeTags=no-mutate"
+        });
+
+        assertEquals(true, parsed.sinceLastRun());
+        assertEquals(false, parsed.mutateAll());
+        assertEquals(75, parsed.mutationWarning());
+        assertEquals("mvn test -DexcludeTags=no-mutate", parsed.testCommand());
+    }
+
+    @Test
+    void parsesMutateAllFlag() {
+        CliArguments parsed = CliArgumentsParser.parse(new String[]{
+                "src/main/java/demo/App.java", "--mutate-all"
+        });
+
+        assertEquals(true, parsed.mutateAll());
     }
 
     @Test
@@ -115,6 +143,30 @@ class CliArgumentsParserTest {
     }
 
     @Test
+    void rejectsLinesCombinedWithSinceLastRun() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--lines", "5", "--since-last-run"}));
+
+        assertEquals("--lines may not be combined with --since-last-run", error.getMessage());
+    }
+
+    @Test
+    void rejectsLinesCombinedWithMutateAll() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--lines", "5", "--mutate-all"}));
+
+        assertEquals("--lines may not be combined with --mutate-all", error.getMessage());
+    }
+
+    @Test
+    void rejectsSinceLastRunCombinedWithMutateAll() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--since-last-run", "--mutate-all"}));
+
+        assertEquals("--since-last-run may not be combined with --mutate-all", error.getMessage());
+    }
+
+    @Test
     void rejectsMissingLinesValue() {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--lines"}));
@@ -152,5 +204,13 @@ class CliArgumentsParserTest {
                 () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--max-workers"}));
 
         assertEquals("--max-workers requires a value", error.getMessage());
+    }
+
+    @Test
+    void rejectsBlankTestCommand() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--test-command", "   "}));
+
+        assertEquals("--test-command must not be blank", error.getMessage());
     }
 }

@@ -65,6 +65,15 @@ class ProcessTestCommandExecutorTest {
         assertFalse(result.timedOut());
     }
 
+    @Test
+    void startsShellCommandOverrideInTargetDirectory() throws Exception {
+        TestRun result = new ProcessTestCommandExecutor().withCommand("printf ok").runTests(tempDir, 0);
+
+        assertEquals(0, result.exitCode());
+        assertEquals("ok", result.output());
+        assertFalse(result.timedOut());
+    }
+
     private static final class FakeProcess extends Process {
         private final int exitCode;
         private final boolean waitResult;

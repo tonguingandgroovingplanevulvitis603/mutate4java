@@ -7,10 +7,14 @@ final class ReportFormatter {
 
     String format(Path projectRoot,
                   TestRun baseline,
+                  String extra,
                   List<MutationSite> uncovered,
                   List<MutationResult> results) {
         StringBuilder out = new StringBuilder();
         out.append("Baseline tests passed in ").append(baseline.durationMillis()).append(" ms.\n");
+        if (extra != null && !extra.isBlank()) {
+            out.append(extra);
+        }
         for (MutationSite site : uncovered) {
             out.append("UNCOVERED ");
             out.append(projectRoot.relativize(site.file())).append(':');

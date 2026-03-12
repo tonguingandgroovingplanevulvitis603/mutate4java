@@ -17,6 +17,7 @@ final class CliApplication {
     private final ProgressReporter verboseProgressReporter;
     private final MutationCatalog catalog = new MutationCatalog();
     private final ReportFormatter formatter = new ReportFormatter();
+    private final ManifestSupport manifestSupport = new ManifestSupport();
 
     CliApplication(Path workspaceRoot, PrintStream out, PrintStream err, TestCommandExecutor executor) {
         this(workspaceRoot,
@@ -73,13 +74,17 @@ final class CliApplication {
             return parse.exitCode;
         }
         CliArguments parsed = parse.arguments;
+        TestCommandExecutor selectedExecutor = parsed.testCommand() == null ? executor : executor.withCommand(parsed.testCommand());
 
         List<Path> files = filesForMode(parsed);
+        Path sourceFile = files.get(0);
         Path moduleRoot = moduleRootFor(files);
         ProgressReporter progressReporter = parsed.verbose() ? verboseProgressReporter : new NoOpProgressReporter();
 
         progressReporter.baselineStarting(moduleRoot);
-        CoverageRun coverageRun = coverageRunner.generateCoverage(moduleRoot);
+        CoverageRun coverageRun = parsed.testCommand() == null
+                ? coverageRunner.generateCoverage(moduleRoot)
+                : new CoverageRun(selectedExecutor.runTests(moduleRoot, 0L), CoverageReport.allCovered());
         TestRun baseline = coverageRun.baseline();
         progressReporter.baselineFinished(baseline);
         if (!baseline.passed()) {
@@ -92,23 +97,41 @@ final class CliApplication {
         }
 
         CoverageReport coverage = coverageRun.report();
-        List<MutationSite> discovered = filterByLines(catalog.discover(files), parsed.lines());
-        CoverageSelection selection = filterCoveredSites(moduleRoot, discovered, coverage);
-        if (selection.covered().isEmpty()) {
-            out.print(formatter.format(workspaceRoot, baseline, selection.uncovered(), List.of()));
+        SourceAnalysis analysis = analyze(sourceFile);
+        DifferentialSelection differentialSelection = selectSites(sourceFile, parsed, analysis);
+        List<MutationSite> discovered = filterByLines(differentialSelection.selected(), parsed.lines());
+        CoverageSelection coverageSelection = filterCoveredSites(moduleRoot, discovered, coverage);
+        StringBuilder extra = new StringBuilder();
+        if (differentialSelection.unchangedModule()) {
+            extra.append("No mutations need testing.\n");
+        }
+        if (coverageSelection.covered().size() > parsed.mutationWarning()) {
+            extra.append("WARNING: Found ").append(coverageSelection.covered().size())
+                    .append(" mutations. Consider splitting this module.\n");
+        }
+        if (coverageSelection.covered().isEmpty()) {
+            if (baseline.passed()) {
+                writeManifest(sourceFile, analysis);
+            }
+            out.print(formatter.format(workspaceRoot, baseline, extra.toString(), coverageSelection.uncovered(), List.of()));
             return 0;
         }
 
         long timeoutMillis = mutantTimeoutMillis(baseline.durationMillis(), parsed.timeoutFactor());
         List<MutationResult> results = runMutations(
                 moduleRoot,
-                selection.covered(),
+                coverageSelection.covered(),
                 timeoutMillis,
                 parsed.maxWorkers(),
-                progressReporter
+                progressReporter,
+                selectedExecutor
         );
-        out.print(formatter.format(workspaceRoot, baseline, selection.uncovered(), results));
-        return results.stream().anyMatch(result -> !result.killed()) ? 3 : 0;
+        int exit = results.stream().anyMatch(result -> !result.killed()) ? 3 : 0;
+        if (exit == 0) {
+            writeManifest(sourceFile, analysis);
+        }
+        out.print(formatter.format(workspaceRoot, baseline, extra.toString(), coverageSelection.uncovered(), results));
+        return exit;
     }
 
     private ParseOutcome parseArguments(String[] args) {
@@ -134,7 +157,8 @@ final class CliApplication {
                                               List<MutationSite> sites,
                                               long timeoutMillis,
                                               int maxWorkers,
-                                              ProgressReporter progressReporter) throws Exception {
+                                              ProgressReporter progressReporter,
+                                              TestCommandExecutor testExecutor) throws Exception {
         List<MutationJob> jobs = new ArrayList<>();
         for (int i = 0; i < sites.size(); i++) {
             MutationSite site = sites.get(i);
@@ -142,9 +166,44 @@ final class CliApplication {
         }
         int workerCount = Math.max(1, Math.min(jobs.size(), maxWorkers));
         try (WorkerWorkspaces workspaces = workspaceManager.createWorkerWorkspaces(moduleRoot, workerCount);
-             WorkerPool pool = new ParallelWorkerPool(workspaces.workerRoots(), executor, progressReporter)) {
+             WorkerPool pool = new ParallelWorkerPool(workspaces.workerRoots(), testExecutor, progressReporter)) {
             return pool.runAll(jobs);
         }
+    }
+
+    private SourceAnalysis analyze(Path sourceFile) throws Exception {
+        return catalog.analyze(sourceFile);
+    }
+
+    private DifferentialSelection selectSites(Path sourceFile, CliArguments parsed, SourceAnalysis analysis) throws Exception {
+        if (parsed.mutateAll()) {
+            return new DifferentialSelection(analysis.sites(), false);
+        }
+        if (!parsed.sinceLastRun() && !parsed.lines().isEmpty()) {
+            return new DifferentialSelection(analysis.sites(), false);
+        }
+        var manifest = manifestSupport.read(sourceFile);
+        if (manifest.isEmpty()) {
+            return new DifferentialSelection(analysis.sites(), false);
+        }
+        DifferentialManifest previous = manifest.get();
+        if (previous.moduleHash().equals(analysis.moduleHash())) {
+            return new DifferentialSelection(List.of(), true);
+        }
+        java.util.Map<String, String> previousHashes = new java.util.LinkedHashMap<>();
+        for (MutationScope scope : previous.scopes()) {
+            previousHashes.put(scope.id(), scope.semanticHash());
+        }
+        java.util.Set<String> changedScopes = new java.util.LinkedHashSet<>();
+        for (MutationScope scope : analysis.scopes()) {
+            if (!scope.semanticHash().equals(previousHashes.get(scope.id()))) {
+                changedScopes.add(scope.id());
+            }
+        }
+        List<MutationSite> selected = analysis.sites().stream()
+                .filter(site -> changedScopes.contains(site.scopeId()))
+                .toList();
+        return new DifferentialSelection(selected, false);
     }
 
     private List<MutationSite> filterByLines(List<MutationSite> sites, Set<Integer> lines) {
@@ -176,10 +235,14 @@ final class CliApplication {
 
     String sourceSuffix(Path moduleRoot, Path file) {
         String relative = moduleRoot.relativize(file).toString().replace('\\', '/');
-        String prefix = "src/";
-        int separator = relative.indexOf('/');
-        if (relative.startsWith(prefix) && separator >= 0) {
-            return relative.substring(separator + 1);
+        if (relative.startsWith("src/main/java/")) {
+            return relative.substring("src/main/java/".length());
+        }
+        if (relative.startsWith("src/test/java/")) {
+            return relative.substring("src/test/java/".length());
+        }
+        if (relative.startsWith("src/")) {
+            return relative.substring("src/".length());
         }
         return relative;
     }
@@ -220,5 +283,11 @@ final class CliApplication {
     }
 
     private record CoverageSelection(List<MutationSite> covered, List<MutationSite> uncovered) {
+    }
+
+    private void writeManifest(Path sourceFile, SourceAnalysis analysis) throws Exception {
+        manifestSupport.write(sourceFile,
+                analysis.sourceWithoutManifest(),
+                new DifferentialManifest(1, analysis.moduleHash(), analysis.scopes()));
     }
 }

@@ -6,4 +6,8 @@ import java.nio.file.Path;
 interface TestCommandExecutor {
 
     TestRun runTests(Path projectRoot, long timeoutMillis) throws IOException, InterruptedException;
+
+    default TestCommandExecutor withCommand(String command) {
+        return this;
+    }
 }

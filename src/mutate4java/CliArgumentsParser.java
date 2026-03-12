@@ -8,6 +8,7 @@ import java.util.Set;
 final class CliArgumentsParser {
 
     private static final int DEFAULT_TIMEOUT_FACTOR = 10;
+    private static final int DEFAULT_MUTATION_WARNING = 50;
     private static final int DEFAULT_MAX_WORKERS = Math.max(1, Runtime.getRuntime().availableProcessors() / 2);
 
     private CliArgumentsParser() {
@@ -19,15 +20,21 @@ final class CliArgumentsParser {
             i = parseArgument(args, i, state);
         }
         if (state.help) {
-            return new CliArguments(CliMode.HELP, List.of(), Set.of(), state.timeoutFactor, state.maxWorkers, state.verbose);
+            return new CliArguments(CliMode.HELP, List.of(), Set.of(), false, false,
+                    state.timeoutFactor, state.mutationWarning, state.maxWorkers, null, state.verbose);
         }
+        validateSelectionFlags(state);
         ensureExactlyOneJavaFile(state.values);
         return new CliArguments(
                 CliMode.EXPLICIT_FILES,
                 List.copyOf(state.values),
                 state.lines,
+                state.sinceLastRun,
+                state.mutateAll,
                 state.timeoutFactor,
+                state.mutationWarning,
                 state.maxWorkers,
+                state.testCommand,
                 state.verbose
         );
     }
@@ -38,12 +45,29 @@ final class CliArgumentsParser {
             case "--help" -> state.help(index);
             case "--verbose" -> state.verbose(index);
             case "--lines" -> parseFlagValue(args, index, "--lines", value -> state.lines(parseLines(value)));
+            case "--since-last-run" -> state.sinceLastRun(index);
+            case "--mutate-all" -> state.mutateAll(index);
             case "--timeout-factor" -> parseFlagValue(args, index, "--timeout-factor",
                     value -> state.timeoutFactor(parsePositiveInt(value, "--timeout-factor")));
+            case "--mutation-warning" -> parseFlagValue(args, index, "--mutation-warning",
+                    value -> state.mutationWarning(parsePositiveInt(value, "--mutation-warning")));
             case "--max-workers" -> parseFlagValue(args, index, "--max-workers",
                     value -> state.maxWorkers(parsePositiveInt(value, "--max-workers")));
+            case "--test-command" -> parseFlagValue(args, index, "--test-command", state::testCommand);
             default -> addFileArgument(arg, index, state);
         };
+    }
+
+    private static void validateSelectionFlags(ParseState state) {
+        if (!state.lines.isEmpty() && state.sinceLastRun) {
+            throw new IllegalArgumentException("--lines may not be combined with --since-last-run");
+        }
+        if (!state.lines.isEmpty() && state.mutateAll) {
+            throw new IllegalArgumentException("--lines may not be combined with --mutate-all");
+        }
+        if (state.sinceLastRun && state.mutateAll) {
+            throw new IllegalArgumentException("--since-last-run may not be combined with --mutate-all");
+        }
     }
 
     private static int parseFlagValue(String[] args, int index, String flag, java.util.function.Consumer<String> consumer) {
@@ -109,8 +133,12 @@ final class CliArgumentsParser {
         private boolean help;
         private boolean verbose;
         private Set<Integer> lines = Set.of();
+        private boolean sinceLastRun;
+        private boolean mutateAll;
         private int timeoutFactor = DEFAULT_TIMEOUT_FACTOR;
+        private int mutationWarning = DEFAULT_MUTATION_WARNING;
         private int maxWorkers = DEFAULT_MAX_WORKERS;
+        private String testCommand;
         private final List<String> values = new ArrayList<>();
 
         private int help(int index) {
@@ -123,6 +151,16 @@ final class CliArgumentsParser {
             return index;
         }
 
+        private int sinceLastRun(int index) {
+            sinceLastRun = true;
+            return index;
+        }
+
+        private int mutateAll(int index) {
+            mutateAll = true;
+            return index;
+        }
+
         private void lines(Set<Integer> value) {
             lines = value;
         }
@@ -131,8 +169,19 @@ final class CliArgumentsParser {
             timeoutFactor = value;
         }
 
+        private void mutationWarning(int value) {
+            mutationWarning = value;
+        }
+
         private void maxWorkers(int value) {
             maxWorkers = value;
+        }
+
+        private void testCommand(String value) {
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException("--test-command must not be blank");
+            }
+            testCommand = value;
         }
     }
 }
