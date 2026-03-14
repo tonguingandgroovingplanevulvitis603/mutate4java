@@ -117,6 +117,47 @@ class CliApplicationTest {
     }
 
     @Test
+    void reusesCoverageWithoutRunningBaselineCoverageCommand() throws Exception {
+        Path file = writeSourceFile();
+        StubCoverageRunner coverageRunner = new StubCoverageRunner(true, new CoverageReport(Set.of(
+                new CoverageSite("demo/Sample.java", 5),
+                new CoverageSite("demo/Sample.java", 9)
+        )));
+        StubExecutor executor = new StubExecutor(
+                new TestRun(0, "baseline ok", 10, false),
+                new TestRun(1, "killed", 5, false),
+                new TestRun(1, "killed", 6, false)
+        );
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+
+        int exit = application(new ByteArrayOutputStream(), err, executor, coverageRunner)
+                .execute(new String[]{relative(file), "--reuse-coverage"});
+
+        assertEquals(0, exit);
+        assertEquals(0, coverageRunner.invocations.get());
+        assertEquals(3, executor.invocations.get());
+        assertTrue(err.toString().contains("Reusing existing coverage data"));
+        assertTrue(err.toString().contains("coverage may be stale"));
+    }
+
+    @Test
+    void warnsWhenCoverageReuseIsRequestedButNoCoverageExists() throws Exception {
+        Path file = writeSourceFile();
+        StubCoverageRunner coverageRunner = new StubCoverageRunner(false, new CoverageReport(Set.of()));
+        StubExecutor executor = new StubExecutor(new TestRun(0, "baseline ok", 10, false));
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+
+        int exit = application(new ByteArrayOutputStream(), err, executor, coverageRunner)
+                .execute(new String[]{relative(file), "--reuse-coverage"});
+
+        assertEquals(0, exit);
+        assertEquals(0, coverageRunner.invocations.get());
+        assertEquals(1, executor.invocations.get());
+        assertTrue(err.toString().contains("Coverage reuse requested, but"));
+        assertTrue(err.toString().contains("Continuing without coverage filtering."));
+    }
+
+    @Test
     void marksChangedScopesDuringScanWhenManifestDiffers() throws Exception {
         Path file = writeSourceFile();
         SourceAnalysis manifestBaseline = new MutationCatalog().analyze(file);
@@ -628,23 +669,45 @@ class CliApplicationTest {
     }
 
     private static final class StubCoverageRunner extends CoverageRunner {
-        private final CoverageRun run;
+        private final TestRun baseline;
+        private final CoverageReport report;
+        private final boolean reusableReportAvailable;
         private final AtomicInteger invocations = new AtomicInteger();
 
         private StubCoverageRunner(CoverageReport report) {
-            super(new ProcessCommandExecutor());
-            this.run = new CoverageRun(new TestRun(0, "baseline ok", 10, false), report);
+            this(false, new TestRun(0, "baseline ok", 10, false), report);
         }
 
         private StubCoverageRunner(TestRun baseline, CoverageReport report) {
+            this(false, baseline, report);
+        }
+
+        private StubCoverageRunner(boolean reusableReportAvailable, CoverageReport report) {
+            this(reusableReportAvailable, new TestRun(0, "baseline ok", 10, false), report);
+        }
+
+        private StubCoverageRunner(boolean reusableReportAvailable, TestRun baseline, CoverageReport report) {
             super(new ProcessCommandExecutor());
-            this.run = new CoverageRun(baseline, report);
+            this.reusableReportAvailable = reusableReportAvailable;
+            this.baseline = baseline;
+            this.report = report;
         }
 
         @Override
         public CoverageRun generateCoverage(Path projectRoot) {
             invocations.incrementAndGet();
-            return run;
+            return new CoverageRun(baseline, report, false, true);
+        }
+
+        @Override
+        public CoverageRun generateCoverage(Path projectRoot, boolean reuseCoverage) {
+            if (reuseCoverage) {
+                return new CoverageRun(null,
+                        reusableReportAvailable ? report : new CoverageReport(Set.of()),
+                        true,
+                        reusableReportAvailable);
+            }
+            return generateCoverage(projectRoot);
         }
     }
 

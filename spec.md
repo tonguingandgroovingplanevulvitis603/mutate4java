@@ -82,6 +82,7 @@ The tool shall support these forms:
 - `mutate4java <file.java>`
 - `mutate4java <file.java> --scan`
 - `mutate4java <file.java> --update-manifest`
+- `mutate4java <file.java> --reuse-coverage`
 - `mutate4java <file.java> --lines 12,18`
 - `mutate4java <file.java> --since-last-run`
 - `mutate4java <file.java> --mutate-all`
@@ -104,6 +105,9 @@ Options may be combined unless prohibited by the conflict rules below.
 
 - `--update-manifest`
   Analyze the file and write or refresh the embedded manifest without running baseline tests, coverage, or mutants.
+
+- `--reuse-coverage`
+  Reuse the existing JaCoCo coverage report instead of generating fresh coverage before mutation starts.
 
 - `--lines`
   Restrict mutation to the listed source lines in the target file.
@@ -145,12 +149,14 @@ The tool shall reject these combinations:
 - `--scan` with `--since-last-run`
 - `--scan` with `--mutate-all`
 - `--scan` with `--update-manifest`
+- `--scan` with `--reuse-coverage`
 - `--lines` with `--since-last-run`
 - `--lines` with `--mutate-all`
 - `--lines` with `--update-manifest`
 - `--since-last-run` with `--mutate-all`
 - `--update-manifest` with `--since-last-run`
 - `--update-manifest` with `--mutate-all`
+- `--update-manifest` with `--reuse-coverage`
 
 ## 6. Source Analysis
 
@@ -252,6 +258,8 @@ For differential runs, the tool shall distinguish:
 ## 9. Coverage
 
 By default, the tool shall generate JaCoCo coverage during the baseline run.
+
+When `--reuse-coverage` is specified, the tool shall not refresh coverage. It shall use the existing JaCoCo XML report if present, and otherwise continue without coverage filtering.
 
 Coverage shall be interpreted at line granularity.
 

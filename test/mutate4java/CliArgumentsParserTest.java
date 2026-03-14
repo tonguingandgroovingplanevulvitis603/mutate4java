@@ -42,6 +42,7 @@ class CliArgumentsParserTest {
         assertEquals(Set.of(), parsed.lines());
         assertEquals(false, parsed.scan());
         assertEquals(false, parsed.updateManifest());
+        assertEquals(false, parsed.reuseCoverage());
         assertEquals(false, parsed.sinceLastRun());
         assertEquals(false, parsed.mutateAll());
         assertEquals(10, parsed.timeoutFactor());
@@ -96,6 +97,15 @@ class CliArgumentsParserTest {
         });
 
         assertEquals(true, parsed.updateManifest());
+    }
+
+    @Test
+    void parsesReuseCoverageFlag() {
+        CliArguments parsed = CliArgumentsParser.parse(new String[]{
+                "src/main/java/demo/App.java", "--reuse-coverage"
+        });
+
+        assertEquals(true, parsed.reuseCoverage());
     }
 
     @Test
@@ -218,6 +228,14 @@ class CliArgumentsParserTest {
     }
 
     @Test
+    void rejectsScanCombinedWithReuseCoverage() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--scan", "--reuse-coverage"}));
+
+        assertEquals("--scan may not be combined with --reuse-coverage", error.getMessage());
+    }
+
+    @Test
     void rejectsUpdateManifestCombinedWithSinceLastRun() {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--update-manifest", "--since-last-run"}));
@@ -231,6 +249,14 @@ class CliArgumentsParserTest {
                 () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--update-manifest", "--mutate-all"}));
 
         assertEquals("--update-manifest may not be combined with --mutate-all", error.getMessage());
+    }
+
+    @Test
+    void rejectsUpdateManifestCombinedWithReuseCoverage() {
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> CliArgumentsParser.parse(new String[]{"src/main/java/demo/App.java", "--update-manifest", "--reuse-coverage"}));
+
+        assertEquals("--update-manifest may not be combined with --reuse-coverage", error.getMessage());
     }
 
     @Test

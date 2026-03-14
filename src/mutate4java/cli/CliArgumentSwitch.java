@@ -56,6 +56,7 @@ final class CliArgumentSwitch {
         return switch (arg) {
             case "--scan" -> set(index, () -> state.scan = true);
             case "--update-manifest" -> set(index, () -> state.updateManifest = true);
+            case "--reuse-coverage" -> set(index, () -> state.reuseCoverage = true);
             case "--since-last-run" -> set(index, () -> state.sinceLastRun = true);
             case "--mutate-all" -> set(index, () -> state.mutateAll = true);
             default -> null;
@@ -113,16 +114,16 @@ final class CliArgumentSwitch {
 
 /* mutate4java-manifest
 version=1
-moduleHash=f6bd8ff2bb849d2cd02b79567a4251972bf535252f9939bf8ad333c049c23f92
+moduleHash=058794755ac82936270cb7ee500356a016f4234c77db9584c8cf559f5081e499
 scope.0.id=Y2xhc3M6Q2xpQXJndW1lbnRTd2l0Y2gjQ2xpQXJndW1lbnRTd2l0Y2g6MjU
 scope.0.kind=class
 scope.0.startLine=25
-scope.0.endLine=112
-scope.0.semanticHash=3f45ad69d866df5e9f933470451943f550a8f17c11901050637b670ae215b3cb
-scope.1.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI2FkZEZpbGVBcmd1bWVudCgzKTo5Mw
+scope.0.endLine=113
+scope.0.semanticHash=9ac58c845204a791f1d7bf42f5c29a26336c06ff6d50cf5b16aa24283b3b03b6
+scope.1.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI2FkZEZpbGVBcmd1bWVudCgzKTo5NA
 scope.1.kind=method
-scope.1.startLine=93
-scope.1.endLine=99
+scope.1.startLine=94
+scope.1.endLine=100
 scope.1.semanticHash=e79ce1b21e269131df4c9168472b66e9b3defd525be0b9b91fa339d9db4c6c90
 scope.2.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI2N0b3IoMCk6Mjc
 scope.2.kind=method
@@ -134,10 +135,10 @@ scope.3.kind=method
 scope.3.startLine=30
 scope.3.endLine=45
 scope.3.semanticHash=c7c16aac86ce987b141609695c59add0bf8641f5b2df7848597b430cb58ef9e1
-scope.4.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3BhcnNlRmxhZ1ZhbHVlKDUpOjg1
+scope.4.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3BhcnNlRmxhZ1ZhbHVlKDUpOjg2
 scope.4.kind=method
-scope.4.startLine=85
-scope.4.endLine=91
+scope.4.startLine=86
+scope.4.endLine=92
 scope.4.semanticHash=771578bf467e1e7729242c1810a84d9b46fc6fd13b216428c6ad0ad52ece0181
 scope.5.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3BhcnNlTW9kZUZsYWcoMyk6NDc
 scope.5.kind=method
@@ -147,21 +148,21 @@ scope.5.semanticHash=34d1a9a33454c159c17bfc42fe75a50b18f34cd01d16e50bb4d194e9b2e
 scope.6.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3BhcnNlU2VsZWN0aW9uRmxhZygzKTo1NQ
 scope.6.kind=method
 scope.6.startLine=55
-scope.6.endLine=63
-scope.6.semanticHash=47142efa843e6b2087a13e3c3cb4d39ddc0147a6842557ef7d6ec5cb4723b174
-scope.7.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3BhcnNlVmFsdWVGbGFnKDUpOjY1
+scope.6.endLine=64
+scope.6.semanticHash=b92dc4a5f62ed77308e4577d9012cd2c7518dfb1c32327b8b88f804dc0a82bce
+scope.7.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3BhcnNlVmFsdWVGbGFnKDUpOjY2
 scope.7.kind=method
-scope.7.startLine=65
-scope.7.endLine=83
+scope.7.startLine=66
+scope.7.endLine=84
 scope.7.semanticHash=4e081f989582eb2c0769a76e01ec1cdc6e2ef88a635fa6804724672573a86d3f
-scope.8.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3NldCgyKToxMDE
+scope.8.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3NldCgyKToxMDI
 scope.8.kind=method
-scope.8.startLine=101
-scope.8.endLine=104
+scope.8.startLine=102
+scope.8.endLine=105
 scope.8.semanticHash=d70bd0cb67b6cd33ec25c3c7e3f6a954965cce5f69e7aa2ceb83c159e151bde4
-scope.9.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3NldFRlc3RDb21tYW5kKDIpOjEwNg
+scope.9.id=bWV0aG9kOkNsaUFyZ3VtZW50U3dpdGNoI3NldFRlc3RDb21tYW5kKDIpOjEwNw
 scope.9.kind=method
-scope.9.startLine=106
-scope.9.endLine=111
+scope.9.startLine=107
+scope.9.endLine=112
 scope.9.semanticHash=c1b09b560d2cee69a1d8f2c8239c8659b6f4e50b628e77be881c996f4a2f5cb8
 */

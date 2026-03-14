@@ -52,4 +52,30 @@ class CoverageRunnerIT {
 
         assertTrue(run.report().covers("mutate4java/Sample.java", 5));
     }
+
+    @Test
+    void reusesExistingJacocoReportWithoutRunningCoverageCommand() throws Exception {
+        Path projectRoot = TestProjectFactory.createProject("coverage-runner-reuse");
+        CoverageRunner runner = new CoverageRunner(new ProcessCommandExecutor());
+        runner.generateCoverage(projectRoot);
+
+        CoverageRun reused = runner.generateCoverage(projectRoot, true);
+
+        assertTrue(reused.reused());
+        assertTrue(reused.reportAvailable());
+        assertEquals(null, reused.baseline());
+        assertTrue(reused.report().covers("mutate4java/Sample.java", 5));
+    }
+
+    @Test
+    void reportsMissingCoverageWhenReuseIsRequestedWithoutExistingReport() throws Exception {
+        Path projectRoot = TestProjectFactory.createProject("coverage-runner-missing-reuse");
+
+        CoverageRun reused = new CoverageRunner(new ProcessCommandExecutor()).generateCoverage(projectRoot, true);
+
+        assertTrue(reused.reused());
+        assertFalse(reused.reportAvailable());
+        assertEquals(null, reused.baseline());
+        assertFalse(reused.report().covers("mutate4java/Sample.java", 5));
+    }
 }

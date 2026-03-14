@@ -35,6 +35,9 @@ java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --s
 # Write or refresh the embedded manifest without running tests
 java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --update-manifest
 
+# Reuse existing coverage data instead of refreshing it
+java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --reuse-coverage
+
 # Restrict mutation to specific lines
 java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --lines 12,18
 
@@ -74,6 +77,9 @@ java -jar target/mutate4java-0.1.0-SNAPSHOT.jar --help
 - `--update-manifest`
   Rewrites the embedded manifest for the requested file without running baseline tests, coverage, or mutants.
 
+- `--reuse-coverage`
+  Reuses the existing JaCoCo XML coverage report instead of refreshing coverage before mutation starts.
+
 - `--since-last-run`
   Restricts mutation to covered sites in declaration scopes that changed since the embedded manifest.
 
@@ -103,14 +109,16 @@ java -jar target/mutate4java-0.1.0-SNAPSHOT.jar --help
 - The tool accepts exactly one `.java` file target.
 - Directory-wide mutation is not supported.
 - Test sources are executed, but they are not mutation targets.
-- `--update-manifest` may not be combined with `--scan`, `--lines`, `--since-last-run`, or `--mutate-all`.
+- `--update-manifest` may not be combined with `--scan`, `--reuse-coverage`, `--lines`, `--since-last-run`, or `--mutate-all`.
 - `--lines` may not be combined with `--since-last-run` or `--mutate-all`.
-- `--scan` may not be combined with `--since-last-run` or `--mutate-all`.
+- `--scan` may not be combined with `--since-last-run`, `--mutate-all`, or `--reuse-coverage`.
 - `--since-last-run` may not be combined with `--mutate-all`.
 
 ## Coverage Filtering
 
 `mutate4java` generates JaCoCo coverage during the baseline run and uses line coverage to skip uncovered mutation sites.
+
+When `--reuse-coverage` is used, the tool skips the coverage refresh and reuses `target/site/jacoco/jacoco.xml` if it exists. The run prints a warning because covered/uncovered classification may be stale. If the report does not exist, the run continues without coverage filtering.
 
 When `--test-command` is used, the tool does not attempt to wrap that custom command in JaCoCo. In that mode, mutation sites are treated as covered.
 
@@ -160,6 +168,8 @@ With no explicit selection flags:
 This makes repeated mutation runs cheaper on large files without relying on git.
 
 `--update-manifest` is the manual version of that write step. It refreshes the embedded manifest from the current source analysis even if the module's tests are red, because it does not run them.
+
+`--update-manifest` should not run coverage at all. It is a manifest rewrite only.
 
 ## Scan Mode
 
@@ -263,3 +273,13 @@ mvn -pl tools/mutate4java package
 ```
 
 `mvn test` runs the fast unit suite. `mvn verify` also runs the Maven-spawning integration tests that exercise coverage generation and real `mvn test` execution against temporary sample projects.
+
+## Workflow Recommendation
+
+If you have a batch of mutation runs to execute in the same module, let the first run generate fresh coverage and then use `--reuse-coverage` for the remaining runs.
+
+```bash
+java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/First.java
+java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Second.java --reuse-coverage
+java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Third.java --reuse-coverage
+```
